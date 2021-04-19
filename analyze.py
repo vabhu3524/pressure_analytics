@@ -16,37 +16,15 @@ def count_contractions(pressure_data):
     count=0
     bHigh=False
     bLow=False
-    num=0
-    ms=0
-    ps=0
-    mean=[]
-    val=0
     for k in range(0, len(pressure_data)):
-        val+=pressure_data[k]["ms"]
         if pressure_data[k]["pressure"]>95:
-            bHigh = True
-
-        if bHigh and pressure_data[k]["pressure"]<85:
-            bLow = True
-        
-        if bHigh and bLow:
-            if pressure_data[k]["pressure"]>95:
+            if bLow: 
                 count+=1
-                bLow = False
-                mean.append(val)
-                val=0
-                #num=inputData.iloc[k,0]
-                
-    print(count)
-    print(num)
-    print(len(mean))
-    miliSecond=sum(mean)/76
-
-    print((miliSecond/1000))
-    # print(ms/num)
-    # print(ps/1779)
-    
-
+                bLow=False 
+            bHigh=True
+        elif pressure_data[k]["pressure"]<85:
+            if bHigh: 
+                bLow=True
 
     return count
 
@@ -58,9 +36,27 @@ def contractions_per_sec(pressure_data):
     :return: The mean frequency of contraction / secs
     """
     # FIXME
+    
+    contractTimeArr=[]
+    bHigh=False
+    bLow=False
+    count=0
+    initialTime=pressure_data[0]["ms"]
+    for k in range(0, len(pressure_data)):
+        if pressure_data[k]["pressure"]>95:
+            if bLow: 
+                contractTimeArr.append(pressure_data[k]["ms"] - initialTime)
+                initialTime=pressure_data[k]["ms"]
+                count+=1
+                bLow=False 
+            bHigh=True
+        elif pressure_data[k]["pressure"]<85:
+            if bHigh: 
+                bLow=True
+  
+    meanTime=sum(contractTimeArr)/1000
 
-
-    return 0
+    return round((len(contractTimeArr)/meanTime),2)
 
 def main():
     pressure_file = sys.argv[1]
@@ -68,7 +64,6 @@ def main():
     inputData = pd.read_csv(pressure_file, skiprows=0).fillna(value=0)
     pressure_data=[]
     
-
     for k in range(0, len(inputData)):
         dictPressure = {"ms":0,"pressure":0}
         dictPressure["ms"]=int(inputData.iloc[k, 0])
@@ -87,11 +82,11 @@ def main():
     print("* Number of contraction = {}".format(n))
     print("* Contraction / s = {}".format(f))
 
-    result={ "pressure_data": pressure_data, "count_contractions": int(n),"contraction_per_sec": int(f) }
+    result={ "pressure_data": pressure_data, "count_contractions": int(n),"contraction_per_sec": float(f) }
     json_object = json.dumps(result, indent = 4)
   
     # Writing to sample.json
-    with open("sample.json", "w") as outfile:
+    with open("pressure.json", "w") as outfile:
         outfile.write(json_object)
 
     return 0
